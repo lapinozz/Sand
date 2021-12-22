@@ -23,6 +23,7 @@
 class SimulationRenderer : public sf::Drawable
 {
 	Simulation& sim;
+	int worldRes;
 
 	static inline bool glewIsInit = false;
 
@@ -31,7 +32,7 @@ class SimulationRenderer : public sf::Drawable
 	GLuint VertexArrayID;
 
 public:
-	SimulationRenderer(Simulation& sim) : sim(sim)
+	SimulationRenderer(Simulation& sim, int worldRes) : sim(sim), worldRes(worldRes)
 	{
 		shader.loadFromFile("./vertex.glsl", "./geometry.glsl", "./fragment.glsl");
 
@@ -90,7 +91,6 @@ public:
 		);
 
 		const auto view = target.getView();
-		const auto worldRes = sim.worldRes;
 
 		const auto shaderId = shader.getNativeHandle();
 		glUseProgram(shaderId);

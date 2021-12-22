@@ -19,8 +19,6 @@
 #include "utils.hpp"
 #include "map.hpp"
 
-enum CellType : Index {Empty = 0, Wall, Sand, Water, Gas};
-
 struct Color
 {
 	Color(const sf::Color& c)
@@ -36,29 +34,51 @@ struct Color
 	float b;
 	float a;
 };
+
 std::array cellColors2 = { sf::Color::Transparent, sf::Color{128, 0, 0}, sf::Color{194, 178, 128}, sf::Color{156, 211, 219}, sf::Color{76, 187, 23} };
 std::array<Color, 5> cellColors = { sf::Color::Transparent, sf::Color{128, 0, 0}, sf::Color{194, 178, 128}, sf::Color{156, 211, 219}, sf::Color{76, 187, 23} };
 
+enum CellType : Index {Empty = 0, Wall, Sand, Water, Gas, COUNT};
+enum ParticleFlags : uint8_t {
+	None = 0,
+	Movable = 1 << 0,
+	Fluid = 1 << 1,
+};
+
+struct ParticleDef
+{
+	float Density = 1;
+	uint8_t flags;
+};
+
+std::array<ParticleDef, CellType::COUNT> particleDefs = {{
+	{0, ParticleFlags::None}, // None
+	{1.f, ParticleFlags::None}, // Wall
+	{2.f, ParticleFlags::Movable}, // Sand
+	{1.5f, ParticleFlags::Movable | ParticleFlags::Fluid}, // Water
+	{0.5f, ParticleFlags::Movable | ParticleFlags::Fluid}, // Gas
+}};
 
 struct Particle
 {
 	CellType type;
-	Pos pos;
+	Posi pos;
+	Posf posf;
+	Vel vel;
 	Index index;
 };
 
 class Simulation
 {
 public:
-	Vec worldSize;
-	int32_t worldRes;
+	Veci32 worldSize;
 
 	Map<Index> map{ 0, 0 };
 
 	int32_t particleCount = 0;
 	std::vector<Particle> particles;
 
-	Simulation(Vec worldSize = { 1200, 1000 }, int32_t worldRes = 4) : worldSize(worldSize), worldRes(worldRes)
+	Simulation(Veci32 worldSize = { 1200, 1000 }) : worldSize(worldSize)
 	{
 		map.resize(worldSize);
 		particles.resize(map.getSize(), {Gas});
@@ -66,6 +86,15 @@ public:
 		for (int32_t x = 0; x < map.getSize(); x++)
 		{
 			map.raw(x) = NO_INDEX;
+		}
+
+
+		for (int32_t y = 100; y < worldSize.y / 2; y++)
+		{
+			for (int32_t x = 0; x  < worldSize.x; x++)
+			{
+				addParticle(CellType::Gas, x, y);
+			}
 		}
 
 		for (int32_t x = 0; x < 50; x++)
@@ -101,7 +130,7 @@ public:
 		}
 	}
 
-	void addParticle(CellType type, Pos pos)
+	void addParticle(CellType type, Posi pos)
 	{
 		Index& index = map.at(pos);
 		if (index == NO_INDEX)
@@ -110,6 +139,7 @@ public:
 		}
 	
 		particles[index].pos = pos;
+		particles[index].posf = pos;
 		particles[index].type = type;
 		particles[index].index = index;
 	}
@@ -119,53 +149,12 @@ public:
 		addParticle(type, {x, y});
 	}
 
-	void addParticleCircle(CellType type, Pos center, int32_t radius)
+	void addParticleCircle(CellType type, Posi center, int32_t radius)
 	{
-		Pos pos{ radius, 0 };
-	
-		addParticle(type, { center.x + pos.x, center.y + pos.y });
-
-		if (radius > 0)
+		makeCircle(radius, [&](Posi pos)
 		{
-			addParticle(type, { center.x + pos.x, center.y - pos.y });
-			addParticle(type, { center.x + pos.y, center.y + pos.x });
-			addParticle(type, { center.x - pos.y, center.y + pos.x });
-			addParticle(type, { center.x - pos.y, center.y + pos.x });
-		}
-
-		auto p = 1 - radius;
-		while (pos.x > pos.y)
-		{
-			pos.y++;
-
-			if (p <= 0)
-			{
-				p = p + 2 * pos.y + 1;
-			}
-			else
-			{
-				pos.x--;
-				p = p + 2 * pos.y - 2 * pos.x + 1;
-			}
-
-			if (pos.x < pos.y)
-			{
-				break;
-			}
-
-			addParticle(type, { center.x + pos.x, center.y + pos.y });
-			addParticle(type, { center.x - pos.x, center.y + pos.y });
-			addParticle(type, { center.x - pos.x, center.y - pos.y });
-			addParticle(type, {center.x + pos.x, center.y - pos.y});
-
-			if (pos.x != pos.y)
-			{
-				addParticle(type, { center.x + pos.y, center.y + pos.x });
-				addParticle(type, { center.x - pos.y, center.y + pos.x });
-				addParticle(type, { center.x - pos.y, center.y - pos.x });
-				addParticle(type, { center.x + pos.y, center.y - pos.x });
-			}
-		}
+			addParticle(type, center + pos);
+		});
 	}
 
 	void addParticleCircle(CellType type, int32_t x, int32_t y, int32_t radius)
@@ -173,91 +162,43 @@ public:
 		addParticleCircle(type, { x, y }, radius);
 	}
 
-	void fillParticleCircle(CellType type, Pos center, int32_t radius)
+	void fillParticleCircle(CellType type, Posi center, Veci32 radius)
 	{
-		Pos pos{ radius, 0 };
-
-		if (radius == 0)
+		makeCircle(radius, [&](Posi pos)
 		{
-			addParticle(type, { center.x + pos.x, center.y + pos.y });
-		}
-		else
-		{
-			for (int32_t i = -radius; i < radius + 1; i++)
-			{
-				addParticle(type, { center.x + i, center.y});
-			}
-
-			addParticle(type, { center.x + pos.y, center.y + pos.x });
-			addParticle(type, { center.x + pos.y, center.y - pos.x });
-		}
-
-		auto p = 1 - radius;
-		while (pos.x > pos.y)
-		{
-			pos.y++;
-
-			if (p <= 0)
-			{
-				p = p + 2 * pos.y + 1;
-			}
-			else
-			{
-				pos.x--;
-				p = p + 2 * pos.y - 2 * pos.x + 1;
-			}
-
-			if (pos.x < pos.y)
-			{
-				break;
-			}
-
-			for (int32_t i = 0; i < std::abs(pos.x) + 1; i++)
-			{
-				addParticle(type, { center.x + i, center.y + pos.y });
-				addParticle(type, { center.x - i, center.y + pos.y });
-				addParticle(type, { center.x - i, center.y - pos.y });
-				addParticle(type, { center.x + i, center.y - pos.y });
-			}
-
-			if (pos.x != pos.y)
-			{
-				for (int32_t i = 0; i < std::abs(pos.x) + 1; i++)
-				{
-					addParticle(type, { center.x + pos.y, center.y + i });
-					addParticle(type, { center.x - pos.y, center.y + i });
-					addParticle(type, { center.x - pos.y, center.y - i });
-					addParticle(type, { center.x + pos.y, center.y - i });
-				}
-			}
-		}
+			addParticle(type, center + pos);
+		}, true);
 	}
 
-	void fillParticleCircle(CellType type, int32_t x, int32_t y, int32_t radius)
+	CellType getParticleType(Posf pos)
 	{
-		fillParticleCircle(type, { x, y }, radius);
+		return getParticleType(Posi(pos + 0.5f));
 	}
 
-	CellType getParticleType(Pos pos)
+	CellType getParticleType(Posi pos)
 	{
 		Index index = map.at(pos);
 		return index == NO_INDEX ? CellType::Empty : particles[index].type;
 	}
 
-	void moveParticle(Index index, Pos pos)
+	void moveParticle(Index index, Posf pos)
 	{
 		Particle& particle = particles[index];
 	
 		map.at(particle.pos) = NO_INDEX;
-		map.at(pos) = index;
 
-		particle.pos = pos;
+		particle.pos = pos + 0.5f;
+		particle.posf = pos;
+
+		map.at(particle.pos) = index;
 	}
 
 	RandomizerXorshiftPlus randGen;
 
 	void simulate()
 	{
+		const Vecf gravity { 0.f, 0.01f };
+
 		for (int32_t i = 0; i < particleCount; i++)
 		{
 			Particle& p = particles[i];
@@ -266,15 +207,61 @@ public:
 				continue;
 			}
 
+			const auto& def = particleDefs[p.type];
+			if (def.flags & ParticleFlags::Movable)
+			{
+				const auto gravityForce = gravity * (def.Density - 1);
+
+				p.vel += gravityForce;
+				
+				float delta = std::max(std::abs(p.vel.x), std::abs(p.vel.y));
+				auto step = p.vel / delta;
+				auto pos = p.posf;
+
+				while (delta > 0)
+				{
+					pos += step;
+					delta -= 1;
+
+					if (pos.x < 0)
+					{
+						pos.x = 0;
+					}
+					else if (pos.x >= map.getWidth())
+					{
+						pos.x = map.getWidth() - 1;
+					}
+
+					if (pos.y < 0)
+					{
+						pos.y = 0;
+					}
+					else if (pos.y >= map.getHeight() - 1)
+					{
+						pos.y = map.getHeight() - 1;
+					}
+
+					if (getParticleType(pos) == CellType::Empty)
+					{
+						moveParticle(i, pos);
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+			continue;
+
 			if (p.type == CellType::Sand)
 			{
-				static const std::array dirsLeft = { Pos{0, 1}, Pos{-1, 1}, Pos{1, 1} };
-				static const std::array dirsRight = { Pos{0, 1}, Pos{1, 1}, Pos{-1, 1} };
+				static const std::array dirsLeft = { Posi{0, 1}, Posi{-1, 1}, Posi{1, 1} };
+				static const std::array dirsRight = { Posi{0, 1}, Posi{1, 1}, Posi{-1, 1} };
 
 				const decltype(dirsLeft)& dirs = (randGen.RandomBool() ? dirsLeft : dirsRight);
-				for (const Pos& dir : dirs)
+				for (const Posi& dir : dirs)
 				{
-					const Pos pos = { p.pos.x + dir.x, p.pos.y + dir.y };
+					const Posi pos = { p.pos.x + dir.x, p.pos.y + dir.y };
 					if (getParticleType(pos) == CellType::Empty)
 					{
 						moveParticle(i, pos);
@@ -284,13 +271,13 @@ public:
 			}
 			else if (p.type == CellType::Water)
 			{
-				static const std::array dirsLeft = { Pos{0, 1}, Pos{-1, 1}, Pos{1, 1}, Pos{-1, 0}, Pos{1, 0} };
-				static const std::array dirsRight = { Pos{0, 1}, Pos{1, 1}, Pos{-1, 1}, Pos{1, 0}, Pos{-1, 0} };
+				static const std::array dirsLeft = { Posi{0, 1}, Posi{-1, 1}, Posi{1, 1}, Posi{-1, 0}, Posi{1, 0} };
+				static const std::array dirsRight = { Posi{0, 1}, Posi{1, 1}, Posi{-1, 1}, Posi{1, 0}, Posi{-1, 0} };
 
 				const decltype(dirsLeft)& dirs = (randGen.RandomBool() ? dirsLeft : dirsRight);
-				for (const Pos& dir : dirs)
+				for (const Posi& dir : dirs)
 				{
-					const Pos pos = { p.pos.x + dir.x, p.pos.y + dir.y };
+					const Posi pos = { p.pos.x + dir.x, p.pos.y + dir.y };
 					if (getParticleType(pos) == CellType::Empty)
 					{
 						moveParticle(i, pos);
@@ -300,13 +287,13 @@ public:
 			}
 			else if (p.type == CellType::Gas)
 			{
-				static const std::array dirsLeft = { Pos{0, -1}, Pos{-1, -1}, Pos{1, -1}, Pos{-1, 0}, Pos{1, 0} };
-				static const std::array dirsRight = { Pos{0, -1}, Pos{1, -1}, Pos{-1, -1}, Pos{1, 0}, Pos{-1, 0} };
+				static const std::array dirsLeft = { Posi{0, -1}, Posi{-1, -1}, Posi{1, -1}, Posi{-1, 0}, Posi{1, 0} };
+				static const std::array dirsRight = { Posi{0, -1}, Posi{1, -1}, Posi{-1, -1}, Posi{1, 0}, Posi{-1, 0} };
 
 				const decltype(dirsLeft)& dirs = (randGen.RandomBool() ? dirsLeft : dirsRight);
-				for (const Pos& dir : dirs)
+				for (const Posi& dir : dirs)
 				{
-					const Pos pos = { p.pos.x + dir.x, p.pos.y + dir.y };
+					const Posi pos = { p.pos.x + dir.x, p.pos.y + dir.y };
 					if (getParticleType(pos) == CellType::Empty)
 					{
 						moveParticle(i, pos);

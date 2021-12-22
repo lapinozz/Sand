@@ -29,6 +29,9 @@ public:
 	sf::ContextSettings contextSettings;
 	sf::RenderWindow window;
 
+	int worldRes = 2;
+	Veci32 worldSize = {700, 500};
+
 	Simulation simulation;
 	SimulationRenderer renderer;
 
@@ -56,18 +59,19 @@ public:
 			3, // settings.majorVersion
 			0 // settings.minorVersion
 		),
-		window(sf::VideoMode(), "Sand", sf::Style::Close | sf::Style::Resize, contextSettings), 
-		simulation({1200, 1000}, 1),
-		renderer(simulation)
-	{
-		const auto worldSize = simulation.worldSize;
 
-		window.setSize(sf::Vector2u(worldSize.x, worldSize.y));
+		window(sf::VideoMode(), "Sand", sf::Style::Close | sf::Style::Resize, contextSettings), 
+		simulation(worldSize),
+		renderer(simulation, worldRes)
+	{
+		const auto viewSize = worldSize * worldRes;
+
+		window.setSize(sf::Vector2u(worldSize.x * worldRes, worldSize.y * worldRes));
 		window.setPosition({ 0, 0 });
 
 		//window.setFramerateLimit(60);
 
-		view = sf::View({ worldSize.x / 2.f, worldSize.y / 2.f }, { (float)worldSize.x, (float)worldSize.y });
+		view = sf::View({ viewSize.x / 2.f, viewSize.y / 2.f }, { (float)viewSize.x, (float)viewSize.y });
 		window.setView(view);
 
 		font.loadFromFile("arial.ttf");
@@ -81,8 +85,39 @@ public:
 
 	void run()
 	{
-		const auto worldSize = simulation.worldSize;
-		const auto worldRes = simulation.worldRes;
+		Veci32 radius{ 5, 5 };
+		sf::Image brushImg;
+		sf::Texture brushTexture;
+		sf::Sprite brushSprite(brushTexture);
+
+		const auto updateBrush = [&]()
+		{
+			const auto size = radius * 2 + 3;
+			brushImg.create(size.x, size.y, sf::Color::Transparent);
+
+			const auto center = radius + 1;
+
+			makeCircle(radius, [&](Posi pos)
+			{
+				brushImg.setPixel(pos.x + center.x, pos.y + center.y, sf::Color::White);
+			});
+
+			brushTexture.create(size.x, size.y);
+			brushTexture.update(brushImg);
+
+			brushSprite.setTexture(brushTexture, true);
+			brushSprite.setOrigin(center.x, center.y);
+			brushSprite.setScale(worldRes, worldRes);
+		};
+
+		const auto draw = [&](Posi pos)
+		{
+			//addParticle(mouseCellType, pos.x, pos.y);
+			simulation.fillParticleCircle(mouseCellType, pos, radius);
+			//simulation.addParticleCircle(mouseCellType, (int32_t)pos.x, (int32_t)pos.y, 5);
+		};
+
+		updateBrush();
 
 		while (window.isOpen())
 		{
@@ -96,6 +131,10 @@ public:
 				else if (event.type == sf::Event::MouseButtonPressed)
 				{
 					mouseDown = true;
+
+					Veci32 pos{ window.mapPixelToCoords({ event.mouseButton.x, event.mouseButton.y }, view) };
+					pos /= worldRes;
+					draw(Veci32{ pos });
 				}
 				else if (event.type == sf::Event::MouseButtonReleased)
 				{
@@ -103,14 +142,38 @@ public:
 				}
 				else if (event.type == sf::Event::MouseMoved)
 				{
+					Veci32 pos{ window.mapPixelToCoords({ event.mouseMove.x, event.mouseMove.y }, view) };
+
+					brushSprite.setPosition(pos.x, pos.y);
+
 					if (mouseDown)
 					{
-						auto pos = window.mapPixelToCoords({ event.mouseMove.x, event.mouseMove.y }, view);
-						pos.x /= worldRes;
-						pos.y /= worldRes;
-						//addParticle(mouseCellType, pos.x, pos.y);
-						simulation.fillParticleCircle(mouseCellType, (int32_t)pos.x, (int32_t)pos.y, 5);
+						pos /= worldRes;
+						draw(Veci32{ pos });
 					}
+				}
+				else if (event.type == sf::Event::MouseWheelScrolled)
+				{
+					if (event.mouseWheelScroll.delta < 0)
+					{
+						radius.y--;
+
+						if (!sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+						{
+							radius.x--;
+						}
+					}
+					else
+					{
+						radius.y++;
+
+						if(!sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+						{
+							radius.x++;
+						}
+					}
+					
+					updateBrush();
 				}
 				if (event.type == sf::Event::KeyPressed)
 				{
@@ -137,13 +200,13 @@ public:
 				}
 			}
 
-			//simulation.simulate();
+			simulation.simulate();
 
 			frameCounter++;
 			fpsTime += frameClock.restart().asSeconds();
-			if (fpsTime >= 10.f)
+			if (fpsTime >= 1.f)
 			{
-				fpsTime -= 10.f;
+				fpsTime -= 1.f;
 
 				std::cout << frameCounter << std::endl;
 
@@ -160,12 +223,14 @@ public:
 			}
 			else
 			{
-				continue;
+				//continue;
 			}
 
 			window.clear();
 
 			window.draw(renderer);
+
+			window.draw(brushSprite);
 
 			window.draw(fpsText);
 			window.draw(frameTimeText);

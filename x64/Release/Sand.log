@@ -1,9 +1,0 @@
-﻿  Sand.cpp
-C:\Users\gsq_apolomat\Documents\Perso\Sand\SimulationRenderer.hpp(98,1): warning C4267:  'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\gsq_apolomat\Documents\Perso\Sand\SimulationRenderer.hpp(102,1): warning C4267:  'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-  Generating code
-  4 of 212 functions ( 1.9%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
-  Finished generating code
-  Sand.vcxproj -> C:\Users\gsq_apolomat\Documents\Perso\Sand\x64\Release\Sand.exe

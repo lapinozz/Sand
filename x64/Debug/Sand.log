@@ -1,4 +1,62 @@
 ﻿  Sand.cpp
-C:\Users\gsq_apolomat\Documents\Perso\Sand\SimulationRenderer.hpp(98,1): warning C4267:  'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\gsq_apolomat\Documents\Perso\Sand\SimulationRenderer.hpp(102,1): warning C4267:  'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-  Sand.vcxproj -> C:\Users\gsq_apolomat\Documents\Perso\Sand\x64\Debug\Sand.exe
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\Simulation.hpp(232,30): warning C4244: '=': conversion from 'int' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\Simulation.hpp(241,31): warning C4244: '=': conversion from 'int' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\SimulationRenderer.hpp(98,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\SimulationRenderer.hpp(102,1): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\game.hpp(109,42): warning C4244: 'argument': conversion from 'const T' to 'float', possible loss of data
+          with
+          [
+              T=int32_t
+          ]
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\game.hpp(109,32): warning C4244: 'argument': conversion from 'const T' to 'float', possible loss of data
+          with
+          [
+              T=int32_t
+          ]
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\game.hpp(110,35): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\game.hpp(110,25): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\game.hpp(147,40): warning C4244: 'argument': conversion from 'T' to 'float', possible loss of data
+          with
+          [
+              T=int32_t
+          ]
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\game.hpp(147,33): warning C4244: 'argument': conversion from 'T' to 'float', possible loss of data
+          with
+          [
+              T=int32_t
+          ]
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\utils.hpp(111,6): warning C4101: 'yBottom': unreferenced local variable
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\Simulation.hpp(170): message : see reference to function template instantiation 'void makeCircle<Simulation::fillParticleCircle::<lambda_1>>(Posi,Callback &&,bool)' being compiled
+          with
+          [
+              Callback=Simulation::fillParticleCircle::<lambda_1>
+          ]
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\utils.hpp(17,36): warning C4244: 'initializing': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+          and
+          [
+              T=int32_t
+          ]
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\game.hpp(135): message : see reference to function template instantiation 'Vec<int32_t>::Vec<float>(sf::Vector2<float>)' being compiled
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\game.hpp(135): message : see reference to function template instantiation 'Vec<int32_t>::Vec<float>(sf::Vector2<float>)' being compiled
+C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\utils.hpp(17,44): warning C4244: 'initializing': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+          and
+          [
+              T=int32_t
+          ]
+  Sand.vcxproj -> C:\Users\gsq_apolomat\OneDrive - Gearbox Software\Documents\Perso\Sand\x64\Debug\Sand.exe

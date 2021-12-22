@@ -31,12 +31,12 @@ public:
 		return data.data()[y * width + x];
 	}
 
-	const T& at(Pos pos) const
+	const T& at(Posi pos) const
 	{
 		return at(pos.x, pos.y);
 	}
 
-	T& at(Pos pos)
+	T& at(Posi pos)
 	{
 		return at(pos.x, pos.y);;
 	}
@@ -66,10 +66,10 @@ public:
 		return width * height;
 	}
 
-	void resize(Vec size)
+	void resize(Veci32 size)
 	{
 		width = size.x;
-		height = size.x;
+		height = size.y;
 		data.resize((size_t)width * (size_t)height);
 	}
 };
